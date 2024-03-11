@@ -9,6 +9,7 @@ const argv = yargs
   .command('ls', 'List files in the store', {}, () => listFiles())
   .command('rm <filename>', 'Remove a file from the store', {}, (argv) => removeFile(argv.filename))
   .command('update <filename>', 'Update contents of a file in the store', {}, (argv) => updateFile(argv.filename))
+  .command('wc', 'Get word count of all files in the store', {}, () => wordCount())
   .help()
   .argv;
 
@@ -59,3 +60,12 @@ async function updateFile(filename) {
     console.error(error.response.data.error);
   }
 }
+// Get word count of all files in the store
+async function wordCount() {
+    try {
+      const response = await axios.get(`${BASE_URL}/wc`);
+      console.log(response.data.wordCounts);
+    } catch (error) {
+      console.error(error.response.data.error);
+    }
+  }
