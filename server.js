@@ -2,8 +2,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const fs = require('fs').promises;
 const path = require('path');
-const wordcount = require('wordcount'); // Add this line
-
+const { exec } = require('child_process'); // Add this line
 const app = express();
 const PORT = process.env.PORT || 3000;
 const STORE_PATH = "/Users/prajjwalsingh/Downloads/storage/";
@@ -102,6 +101,55 @@ app.get('/wc', async (req, res) => {
   function countWords(text) {
     const words = text.split(/\s+/).filter(word => word !== '');
     return words.length;
+  }
+
+
+
+
+  app.get('/freq-words', async (req, res) => {
+    const limit = req.query.limit || 10;
+    const order = req.query.order || 'desc';
+  
+    try {
+      const wordCounts = await getWordCounts();
+      const sortedWordCounts = sortWordCounts(wordCounts, order);
+  
+      // Return the requested number of words
+      const result = sortedWordCounts.slice(0, limit);
+      res.json({ freqWords: result });
+    } catch (error) {
+      console.error('Error:', error);
+      res.status(500).json({ error: 'Internal Server Error' });
+    }
+  });
+  
+  // Helper function to get word counts using shell command
+  async function getWordCounts() {
+    const command = `cat ${path.join(STORE_PATH, '*')} | tr -s ' ' '\n' | sort | uniq -c | sort -n | tail -n 10`;
+    return new Promise((resolve, reject) => {
+      exec(command, (error, stdout, stderr) => {
+        if (error) {
+          reject(error);
+        } else {
+          const wordCounts = stdout.trim().split('\n').map(line => {
+            const [count, word] = line.trim().split(' ');
+            return { word: word, count: parseInt(count) };
+          });
+          resolve(wordCounts);
+        }
+      });
+    });
+  }
+
+  // Helper function to sort word counts
+function sortWordCounts(wordCounts, order) {
+    return wordCounts.sort((a, b) => {
+      if (order === 'asc') {
+        return a.count - b.count;
+      } else {
+        return b.count - a.count;
+      }
+    });
   }
 // Start the server
 app.listen(PORT, () => {

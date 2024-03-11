@@ -10,6 +10,7 @@ const argv = yargs
   .command('rm <filename>', 'Remove a file from the store', {}, (argv) => removeFile(argv.filename))
   .command('update <filename>', 'Update contents of a file in the store', {}, (argv) => updateFile(argv.filename))
   .command('wc', 'Get word count of all files in the store', {}, () => wordCount())
+  .command('freq-words', 'Get the least or most frequent words in all files combined', {}, (argv) => freqWords(argv))
   .help()
   .argv;
 
@@ -65,6 +66,20 @@ async function wordCount() {
     try {
       const response = await axios.get(`${BASE_URL}/wc`);
       console.log(response.data.wordCounts);
+    } catch (error) {
+      console.error(error.response.data.error);
+    }
+  }
+
+
+  // Get the least or most frequent words in all files combined
+async function freqWords(options) {
+    const limit = options.limit || 10;
+    const order = options.order || 'desc';
+  
+    try {
+      const response = await axios.get(`${BASE_URL}/freq-words`, { params: { limit, order } });
+      console.table(response.data.freqWords);
     } catch (error) {
       console.error(error.response.data.error);
     }
