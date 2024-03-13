@@ -7,7 +7,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const STORE_PATH = "/Users/prajjwalsingh/Downloads/storage/";
 
-app.use(bodyParser.json());
+app.use(bodyParser.json({ limit: '10mb' }));
 
 // Helper function to check if a file exists in the store
 async function fileExists(filename) {
