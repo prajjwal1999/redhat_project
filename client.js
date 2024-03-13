@@ -29,7 +29,6 @@ function calculateHash(content) {
       const fileContent = fs.readFileSync(filename, 'utf8');
       const hash = calculateHash(fileContent);
       contents[filename] = { content: fileContent, hash };
-      console.log("coneten",contents);
     }
   
     try {

@@ -33,46 +33,54 @@ async function fileExists(filename) {
 app.post('/add', async (req, res) => {
     const filenames = req.body.filenames;
     const contents = req.body.contents;
-  
+
     try {
-      for (const clientPath of filenames) {
-        const fullPath = path.isAbsolute(clientPath) ? clientPath : path.join(process.cwd(), clientPath);
-        const storagePath = path.join(STORE_PATH, path.basename(fullPath));
-  
-        const fileContent = contents[clientPath];
-        if (!fileContent || !fileContent.content) {
-          return res.status(400).json({ error: `${clientPath} content is undefined or empty.` });
+        let errorMsg = ''; // Default message
+        for (const clientPath of filenames) {
+            const fullPath = path.isAbsolute(clientPath) ? clientPath : path.join(process.cwd(), clientPath);
+            const storagePath = path.join(STORE_PATH, path.basename(fullPath));
+
+            const fileContent = contents[clientPath];
+            if (!fileContent || !fileContent.content) {
+                errorMsg ='content is undefined or empty';
+                return res.status(400).json({ error: `${clientPath} content is undefined or empty.` });
+            }
+
+            const fileHash = fileContent.hash; // Assuming the hash is sent from the client
+            console.log("client hash ", fileHash);
+
+            const fileExistsInStore = await fileExists(storagePath);
+            if(fileExistsInStore){
+            console.log("file present or not  :", fileExistsInStore);
+            console.log("storage path :", storagePath);
+
+                const existingContent = await fs.readFile(storagePath, 'utf-8');
+                const existingHash = calculateHash(existingContent);
+                console.log("existing hash", existingHash);
+
+                if (existingHash === fileHash) {
+                    errorMsg = "A file  exists in the store with same content";
+                    return res.status(400).json({ error: `${clientPath} already exists in the store with same content.` });
+                }
+            }
         }
-  
-        const fileHash = fileContent.hash; // Assuming the hash is sent from the client\
-        console.log("client hash ",fileHash);
-  
-        const fileExistsInStore = await fileExists(storagePath);
-        console.log("file present or not  :" , fileExistsInStore);
-        console.log("storage path :" , storagePath);
-        var errorMsg="File addes successfully";
-        if (fileExistsInStore) {
-          const existingContent = await fs.readFile(storagePath, 'utf-8');
-          const existingHash = calculateHash(existingContent);
-          console.log("existing hash", existingHash);
-  
-          if (existingHash === fileHash) {
-            errorMsg= "already exists in the store with same content";
-            return res.status(400).json({ error: `${clientPath} already exists in the store with same content.` });
-          } else {
-            return res.status(400).json({ error: `${clientPath} already exists in the store with different content.` });
-          }
+
+        // If the loop completes without finding a matching file, add the file to the store
+        for (const clientPath of filenames) {
+            const fullPath = path.isAbsolute(clientPath) ? clientPath : path.join(process.cwd(), clientPath);
+            const storagePath = path.join(STORE_PATH, path.basename(fullPath));
+
+            const fileContent = contents[clientPath];
+            errorMsg =' Filed addded'
+            await fs.writeFile(storagePath, fileContent.content);
         }
-  
-        await fs.writeFile(storagePath, fileContent.content);
-      }
-  
-      res.json({ message: errorMsg });
+
+        res.json({ message: errorMsg });
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: 'Internal Server Error' });
+        console.error(error);
+        res.status(500).json({ error: 'Internal Server Error' });
     }
-  });
+});
   
   // Helper function to calculate the MD5 hash of a string
   function calculateHash(content) {
