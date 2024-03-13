@@ -2,43 +2,83 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const fs = require('fs').promises;
 const path = require('path');
+const crypto = require('crypto');
 const { exec } = require('child_process'); // Add this line
 const app = express();
 const PORT = process.env.PORT || 3000;
 const STORE_PATH = "/Users/prajjwalsingh/Downloads/storage/";
 
-app.use(bodyParser.json({ limit: '10mb' }));
+app.use(bodyParser.json({ limit: '50mb' }));
+
+
+
+// Helper function to calculate the MD5 hash of a string
+function calculateHash(content) {
+  return crypto.createHash('md5').update(content).digest('hex');
+}
 
 // Helper function to check if a file exists in the store
 async function fileExists(filename) {
-  try {
-    await fs.access(path.join(STORE_PATH, filename));
-    return true;
-  } catch (error) {
-    return false;
+    try {
+      await fs.stat(filename);
+      return true;
+    } catch (error) {
+      if (error.code === 'ENOENT') {
+        return false; // File does not exist
+      }
+      throw error; // Other error, propagate it
+    }
   }
-}
-
-// Add files to the store
+/// Add files to the store
 app.post('/add', async (req, res) => {
     const filenames = req.body.filenames;
+    const contents = req.body.contents;
   
-    for (const clientPath of filenames) {
-      const fullPath = path.isAbsolute(clientPath) ? clientPath : path.join(process.cwd(), clientPath);
-      const storagePath = path.join(STORE_PATH, path.basename(fullPath));
+    try {
+      for (const clientPath of filenames) {
+        const fullPath = path.isAbsolute(clientPath) ? clientPath : path.join(process.cwd(), clientPath);
+        const storagePath = path.join(STORE_PATH, path.basename(fullPath));
   
-      const fileExistsInStore = await fileExists(storagePath);
+        const fileContent = contents[clientPath];
+        if (!fileContent || !fileContent.content) {
+          return res.status(400).json({ error: `${clientPath} content is undefined or empty.` });
+        }
   
-      if (fileExistsInStore) {
-        return res.status(400).json({ error: `${clientPath} already exists in the store.` });
+        const fileHash = fileContent.hash; // Assuming the hash is sent from the client\
+        console.log("client hash ",fileHash);
+  
+        const fileExistsInStore = await fileExists(storagePath);
+        console.log("file present or not  :" , fileExistsInStore);
+        console.log("storage path :" , storagePath);
+        var errorMsg="File addes successfully";
+        if (fileExistsInStore) {
+          const existingContent = await fs.readFile(storagePath, 'utf-8');
+          const existingHash = calculateHash(existingContent);
+          console.log("existing hash", existingHash);
+  
+          if (existingHash === fileHash) {
+            errorMsg= "already exists in the store with same content";
+            return res.status(400).json({ error: `${clientPath} already exists in the store with same content.` });
+          } else {
+            return res.status(400).json({ error: `${clientPath} already exists in the store with different content.` });
+          }
+        }
+  
+        await fs.writeFile(storagePath, fileContent.content);
       }
   
-      const fileContent = req.body.contents[clientPath];
-      await fs.writeFile(storagePath, fileContent);
+      res.json({ message: errorMsg });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: 'Internal Server Error' });
     }
-  
-    res.json({ message: 'Files added successfully.' });
   });
+  
+  // Helper function to calculate the MD5 hash of a string
+  function calculateHash(content) {
+    return crypto.createHash('md5').update(content).digest('hex');
+  }
+
 
 // List files in the store
 app.get('/ls', async (req, res) => {

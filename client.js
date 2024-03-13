@@ -1,6 +1,7 @@
 const axios = require('axios');
 const fs = require('fs');
 const yargs = require('yargs');
+const crypto = require('crypto');
 
 const BASE_URL = 'http://localhost:3000';
 
@@ -15,20 +16,29 @@ const argv = yargs
   .argv;
 
 // Add files to the store
-async function addFiles(filenames) {
-  const contents = {};
-
-  for (const filename of filenames) {
-    contents[filename] = fs.readFileSync(filename, 'utf8');
+// Helper function to calculate the MD5 hash of a string
+function calculateHash(content) {
+    return crypto.createHash('md5').update(content).digest('hex');
   }
-
-  try {
-    const response = await axios.post(`${BASE_URL}/add`, { filenames, contents });
-    console.log(response.data.message);
-  } catch (error) {
-    console.error(error.response.data.error);
+  
+  // Add files to the store
+  async function addFiles(filenames) {
+    const contents = {};
+  
+    for (const filename of filenames) {
+      const fileContent = fs.readFileSync(filename, 'utf8');
+      const hash = calculateHash(fileContent);
+      contents[filename] = { content: fileContent, hash };
+      console.log("coneten",contents);
+    }
+  
+    try {
+      const response = await axios.post(`${BASE_URL}/add`, { filenames, contents });
+      console.log(response.data.message);
+    } catch (error) {
+      console.error(error.response.data.error);
+    }
   }
-}
 
 // List files in the store
 async function listFiles() {
