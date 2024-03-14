@@ -27,6 +27,9 @@ File Store Service is a simple HTTP server and command-line client for storing p
 3. Command-line Client
     Use the command-line client to interact with the server:
     Replace <command> with one of the following commands:
+    First run server.js file as 'node server.js' it will run on localhost:3000:
+    Now run below command like 'node client.js add dum.txt':
+    more eg: 'node client ls':
 
 - add <filenames>: Add files to the store
 - ls: List files in the store
