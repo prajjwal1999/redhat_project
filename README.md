@@ -38,3 +38,6 @@ File Store Service is a simple HTTP server and command-line client for storing p
 - wc: Get the number of words in all files stored in the server
 - freq-words [--limit|-n 10] [--order=dsc|asc]: Get the least or most frequent words in all files combined
 - Replace [options] with the appropriate options for each command.
+
+NOTE: a local memory location is created in server.js kindly edit that in your local machine according to yours choice : 
+const STORE_PATH = "/Users/prajjwalsingh/Downloads/storage/"; edit this line accoring to your machine
